@@ -1,0 +1,116 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Wed May 20 17:46:51 2020
+
+@author: intern
+"""
+
+
+#import libraries
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Conv2D, Flatten, Dropout, MaxPooling2D
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+import os
+import numpy as np
+import matplotlib.pyplot as plt
+
+#determine certain parameters for the neural networ
+
+batch_size = 8
+
+#how many photos are fed in to the model at once
+
+epochs = 15 
+
+#number of times data is fed through the model
+
+IMG_HEIGHT = 150 
+IMG_WIDTH = 150 
+
+#directory specified into objects 
+
+directory = '/Users/intern/Desktop/classification/train'
+directory2 = '/Users/intern/Desktop/classification/test'
+
+train_image_generator = ImageDataGenerator(rescale=1./255) # Generator for our training data
+validation_image_generator = ImageDataGenerator(rescale=1./255) # Generator for our validation data
+
+train_data_gen = train_image_generator.flow_from_directory(batch_size=batch_size,
+                                                           directory=directory,
+                                                           shuffle=True,
+                                                           target_size=(IMG_HEIGHT, IMG_WIDTH),
+                                                           class_mode='binary')
+
+val_data_gen = validation_image_generator.flow_from_directory(batch_size=batch_size,
+                                                              directory=directory2,
+                                                              target_size=(IMG_HEIGHT, IMG_WIDTH),
+                                                              class_mode='binary')
+
+#configurring neural network
+
+model = Sequential([
+    Conv2D(16, 3, padding='same', activation='relu', input_shape=(IMG_HEIGHT, IMG_WIDTH ,3)),
+    MaxPooling2D(),
+    Conv2D(32, 3, padding='same', activation='relu'),
+    MaxPooling2D(),
+    Conv2D(64, 3, padding='same', activation='relu'),
+    MaxPooling2D(),
+    Flatten(),
+    Dense(512, activation='relu'),
+    Dense(1)
+])
+
+
+#configuring the learning neural network - adam as the optimising function, 
+#specifiying loss function and accuracy as our metric for both so our model can learn! 
+
+model.compile(optimizer='adam',
+              loss=tf.keras.losses.BinaryCrossentropy(from_logits=True),
+              metrics=['accuracy'])
+
+#split into training and test/validation data
+
+total_train = 378
+total_val = 55
+
+#feed data into model 
+
+history = model.fit_generator(
+    train_data_gen,
+    steps_per_epoch=total_train // batch_size,
+    epochs=epochs,
+    validation_data=val_data_gen,
+    validation_steps=total_val // batch_size)
+
+#extracting acccuracy data into an array to visualise them across the range of epochs
+
+acc = history.history['accuracy']
+val_acc = history.history['val_accuracy']
+
+#extracting loss data into array to visualise our results
+
+loss=history.history['loss']
+val_loss=history.history['val_loss']
+
+#visualising results
+
+epochs_range = range(epochs)
+
+plt.figure(figsize=(8, 8))
+plt.subplot(1, 2, 1)
+plt.plot(epochs_range, acc, label='Training Accuracy')
+plt.plot(epochs_range, val_acc, label='Validation Accuracy')
+plt.legend(loc='lower right')
+plt.title('Training and Validation Accuracy')
+
+plt.subplot(1, 2, 2)
+plt.plot(epochs_range, loss, label='Training Loss')
+plt.plot(epochs_range, val_loss, label='Validation Loss')
+plt.legend(loc='upper right')
+plt.title('Training and Validation Loss')
+plt.show()
+
+
+#plot shows us that optimum number of epochs to maximise accuracy is 7
